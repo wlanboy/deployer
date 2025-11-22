@@ -112,5 +112,7 @@ Das Deployment starten und die Ausgabe streamen:
 
 ```bash
 curl -X GET "http://localhost:8080/api/repo1/rundeployment/123e4567-e89b-12d3-a456-426614174000"
-👉 Ausgabe: Live‑Stream der Ansible‑Playbook‑Ausführung (z. B. TASK [setup] ... ok).
 ```
+
+Ausgabe: 
+Stream der Ansible‑Playbook‑Ausführung (z. B. TASK [setup] ... ok).
