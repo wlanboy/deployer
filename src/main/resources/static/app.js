@@ -131,15 +131,15 @@ function workflow() {
         .then(() => this.loadDeployments());
     },
 
-    // Output Aktionen
-    copyOutput() {
-      const allText = this.outputs.map(o => o.text).join("\n\n");
-      navigator.clipboard.writeText(allText || '').then(() => {
-        alert('Alle Ergebnisse kopiert!');
+    copySingleOutput(o) {
+      navigator.clipboard.writeText(o.text || '').then(() => {
+        alert(`Output von Deployment ${o.deploymentId} kopiert!`);
       });
     },
-    clearOutput() {
-      this.outputs = [];
-    }
+
+    deleteSingleOutput(id) {
+      this.outputs = this.outputs.filter(o => o.id !== id);
+    },
+
   };
 }
