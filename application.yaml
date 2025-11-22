@@ -1,0 +1,10 @@
+git:
+  repos:
+    - id: repo1
+      path: ../ansiblehosts
+      playbooksDir: playbooks
+      inventoriesDir: inventory
+    - id: repo2
+      path: ../ansiblehosts
+      playbooksDir: playbooks
+      inventoriesDir: inventory
