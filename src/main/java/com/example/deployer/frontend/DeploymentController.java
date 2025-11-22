@@ -173,6 +173,13 @@ public class DeploymentController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/deployment/{deploymentId}/step/{stepId}")
+    public void deleteStep(@PathVariable String repoId,
+            @PathVariable String deploymentId,
+            @PathVariable Long stepId) {
+        itemRepo.deleteById(stepId);
+    }
+
     @GetMapping("/rundeployment/{id}")
     public ResponseBodyEmitter runDeployment(@PathVariable String repoId, @PathVariable String id) {
         Deployment d = deploymentRepo.findById(id)

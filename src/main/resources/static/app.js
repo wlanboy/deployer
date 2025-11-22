@@ -194,6 +194,14 @@ function workflow() {
         .then(() => this.loadDeployments());
     },
 
+    deleteStep(deploymentId, stepId) {
+      fetch(`/api/${this.repoId}/deployment/${deploymentId}/step/${stepId}`, {
+        method: 'DELETE'
+      }).then(() => {
+        this.loadDeployments();
+      });
+    },
+
     copySingleOutput(o) {
       navigator.clipboard.writeText(o.text || '').then(() => {
         alert(`Output von Deployment ${o.deploymentId} kopiert!`);

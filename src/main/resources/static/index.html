@@ -13,8 +13,7 @@
   <header>
     <h1>Deployment Workflow</h1>
     <div class="tabs">
-      <button class="btn btn-success"
-        @click="resetDeploymentForm(); tab='create'">
+      <button class="btn btn-success" @click="resetDeploymentForm(); tab='create'">
         Deployment anlegen
       </button>
       <button class="tab-btn btn-accent" @click="tab='execute'">Deployment ausführen</button>
@@ -168,6 +167,7 @@
                           <th>Tags</th>
                           <th>Skip Tags</th>
                           <th>Host Limit</th>
+                          <th>Aktionen</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -178,6 +178,9 @@
                             <td x-text="item.tags"></td>
                             <td x-text="item.skipTags"></td>
                             <td x-text="item.hostLimit"></td>
+                            <td>
+                              <button class="btn btn-danger" @click="deleteStep(d.id, item.id)">Löschen</button>
+                            </td>
                           </tr>
                         </template>
                       </tbody>
