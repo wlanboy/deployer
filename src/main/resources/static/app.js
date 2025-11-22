@@ -71,7 +71,10 @@ function workflow() {
 
     // Deployments laden
     loadDeployments() {
-      if (!this.repoId) return;
+      if (!this.repoId) {
+        this.deployments = [];
+        return;
+      }
       fetch(`/api/${this.repoId}/deployments`)
         .then(r => r.json())
         .then(data => { this.deployments = data; });
