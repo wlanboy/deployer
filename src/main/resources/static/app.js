@@ -50,6 +50,24 @@ function workflow() {
       return this.repoId && this.deploymentName.trim().length > 0;
     },
 
+    resetDeploymentForm() {
+      const currentRepo = this.repoId;
+
+      this.deploymentName = "";
+      this.selectedPlaybooks = [];
+      this.selectedInventory = "";
+      this.tags = "";
+      this.skipTags = "";
+      this.hostLimit = "";
+      this.selectedDeploymentId = "";
+      this.createMode = "";
+
+      this.repoId = currentRepo;
+      if (currentRepo) {
+        this.selectRepo(currentRepo);
+      }
+    },
+
     addStepToDeployment() {
       if (!this.selectedDeploymentId) return;
       const promises = this.selectedPlaybooks.map(p =>
@@ -76,15 +94,23 @@ function workflow() {
         .then(data => { this.repos = data; });
     },
 
-    // Repo auswählen
+    // Repo laden
     selectRepo(id) {
       this.repoId = id;
-      fetch(`/api/${id}/playbooks`)
-        .then(r => r.json())
-        .then(data => { this.playbooks = data; });
+
       fetch(`/api/${id}/inventories`)
         .then(r => r.json())
         .then(data => { this.inventories = data; });
+
+      if (this.createMode === 'step') {
+        fetch(`/api/${id}/playbooks`)
+          .then(r => r.json())
+          .then(data => { this.playbooks = data; });
+      } else {
+        this.playbooks = [];
+        this.selectedPlaybooks = [];
+      }
+
       this.loadDeployments();
     },
 

@@ -13,8 +13,11 @@
   <header>
     <h1>Deployment Workflow</h1>
     <div class="tabs">
-      <button class="tab-btn" @click="tab='create'">Deployment anlegen</button>
-      <button class="tab-btn" @click="tab='execute'">Deployment ausführen</button>
+      <button class="btn btn-success"
+        @click="resetDeploymentForm(); tab='create'">
+        Deployment anlegen
+      </button>
+      <button class="tab-btn btn-accent" @click="tab='execute'">Deployment ausführen</button>
     </div>
     <div class="theme-switch">
       <button class="btn" @click="toggleTheme()">Theme wechseln</button>
@@ -53,43 +56,6 @@
           <div class="field">
             <label class="muted">Deployment-Name</label>
             <input type="text" x-model="deploymentName" placeholder="z. B. Rollout-Prod">
-          </div>
-
-          <div class="field">
-            <label class="muted">Playbooks</label>
-            <div class="checkbox-list">
-              <template x-for="p in playbooks" :key="p">
-                <label class="checkbox-item">
-                  <input type="checkbox" :value="p" x-model="selectedPlaybooks">
-                  <span x-text="p"></span>
-                </label>
-              </template>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="muted">Inventories</label>
-            <select x-model="selectedInventory">
-              <option value="">-- bitte wählen --</option>
-              <template x-for="i in inventories" :key="i">
-                <option x-text="i"></option>
-              </template>
-            </select>
-          </div>
-
-          <div class="field">
-            <label class="muted">Tags</label>
-            <input type="text" x-model="tags" placeholder="setup,deploy">
-          </div>
-
-          <div class="field">
-            <label class="muted">Skip Tags</label>
-            <input type="text" x-model="skipTags" placeholder="tests,debug">
-          </div>
-
-          <div class="field">
-            <label class="muted">Host Limit</label>
-            <input type="text" x-model="hostLimit" placeholder="web01,db02">
           </div>
 
           <button class="btn btn-success" @click="createDeployment()" :disabled="!canCreateDeployment()">Deployment
