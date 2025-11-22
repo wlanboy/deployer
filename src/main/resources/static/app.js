@@ -3,6 +3,8 @@ function workflow() {
     // Tabs: 'create' = anlegen, 'execute' = ausführen
     tab: 'create',
     theme: 'dark',
+    createMode: '',            // 'new' oder 'step'
+    selectedDeploymentId: '',  // für Step hinzufügen
 
     // Daten
     repos: [],
@@ -45,10 +47,26 @@ function workflow() {
     },
 
     canCreateDeployment() {
-      return this.repoId &&
-        this.deploymentName.trim().length > 0 &&
-        this.selectedPlaybooks.length > 0 &&
-        this.selectedInventory;
+      return this.repoId && this.deploymentName.trim().length > 0;
+    },
+
+    addStepToDeployment() {
+      if (!this.selectedDeploymentId) return;
+      const promises = this.selectedPlaybooks.map(p =>
+        fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `playbook=${encodeURIComponent(p)}`
+            + `&inventory=${encodeURIComponent(this.selectedInventory)}`
+            + `&tags=${encodeURIComponent(this.tags)}`
+            + `&skipTags=${encodeURIComponent(this.skipTags)}`
+            + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
+        })
+      );
+      Promise.all(promises).then(() => {
+        this.loadDeployments();
+        this.tab = 'execute'; // nach Hinzufügen direkt zur Ausführung wechseln
+      });
     },
 
     // Repos laden
@@ -81,6 +99,17 @@ function workflow() {
         .then(data => { this.deployments = data; });
     },
 
+    loadPlaybooksAndInventories() {
+      if (!this.repoId) return;
+      fetch(`/api/${this.repoId}/playbooks`)
+        .then(r => r.json())
+        .then(data => { this.playbooks = data; });
+      fetch(`/api/${this.repoId}/inventories`)
+        .then(r => r.json())
+        .then(data => { this.inventories = data; });
+    },
+
+
     // Deployment anlegen
     createDeployment() {
       if (!this.canCreateDeployment()) return;
@@ -95,11 +124,11 @@ function workflow() {
             fetch(`/api/${this.repoId}/deployment/${d.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                      body: `playbook=${encodeURIComponent(p)}`
-                        + `&inventory=${encodeURIComponent(this.selectedInventory)}`
-                        + `&tags=${encodeURIComponent(this.tags)}`
-                        + `&skipTags=${encodeURIComponent(this.skipTags)}`
-                        + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
+              body: `playbook=${encodeURIComponent(p)}`
+                + `&inventory=${encodeURIComponent(this.selectedInventory)}`
+                + `&tags=${encodeURIComponent(this.tags)}`
+                + `&skipTags=${encodeURIComponent(this.skipTags)}`
+                + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
             })
           );
           return Promise.all(promises).then(() => d);

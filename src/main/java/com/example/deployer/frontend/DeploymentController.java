@@ -2,6 +2,7 @@ package com.example.deployer.frontend;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -112,19 +113,27 @@ public class DeploymentController {
     @GetMapping("/deployments")
     public List<Map<String, Object>> listDeployments(@PathVariable String repoId) {
         List<Deployment> deployments = deploymentRepo.findByRepoId(repoId);
+
         return deployments.stream().map(d -> {
             List<DeploymentItem> items = itemRepo.findByDeploymentId(d.getId());
-            return Map.of(
-                    "id", d.getId(),
-                    "name", d.getName(),
-                    "repoId", d.getRepoId(),
-                    "items", items.stream().map(i -> Map.of(
-                            "playbook", i.getPlaybook(),
-                            "inventory", i.getInventory(),
-                            "tags", i.getTags(),
-                            "skipTags", i.getSkipTags(),
-                            "hostLimit", i.getHostLimit()
-                        )).toList());
+
+            List<Map<String, Object>> itemMaps = items.stream().map(i -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", i.getId());
+                m.put("playbook", i.getPlaybook());
+                m.put("inventory", i.getInventory());
+                m.put("tags", i.getTags());
+                m.put("skipTags", i.getSkipTags());
+                m.put("hostLimit", i.getHostLimit());
+                return m;
+            }).toList();
+
+            Map<String, Object> dm = new HashMap<>();
+            dm.put("id", d.getId());
+            dm.put("name", d.getName());
+            dm.put("repoId", d.getRepoId());
+            dm.put("items", itemMaps);
+            return dm;
         }).toList();
     }
 

@@ -21,31 +21,40 @@
     </div>
   </header>
 
-  <div class="container">
-    <!-- Tab 1: Deployment anlegen -->
-    <template x-if="tab==='create'">
-      <div class="row">
-        <!-- Linke Spalte: Repos -->
-        <div class="panel">
-          <h2>Repos</h2>
-          <ul class="list">
-            <template x-for="r in repos" :key="r.id">
-              <li class="item">
-                <h3 x-text="r.id"></h3>
-                <div class="muted" x-text="r.path"></div>
-                <button class="btn btn-accent" @click="selectRepo(r.id)">Auswählen</button>
-              </li>
-            </template>
-          </ul>
+  <template x-if="tab==='create'">
+    <div class="panel">
+      <h2>Deployment anlegen</h2>
+
+      <!-- Repo-Auswahl -->
+      <div class="field">
+        <label class="muted">Repo auswählen</label>
+        <select x-model="repoId" @change="selectRepo(repoId)">
+          <option value="">-- bitte wählen --</option>
+          <template x-for="r in repos" :key="r.id">
+            <option :value="r.id" x-text="r.id"></option>
+          </template>
+        </select>
+      </div>
+
+      <!-- Nur wenn Repo gewählt -->
+      <div x-show="repoId">
+        <!-- Modus-Auswahl -->
+        <div class="field">
+          <label class="muted">Option</label>
+          <select x-model="createMode">
+            <option value="">-- bitte wählen --</option>
+            <option value="new">Neues Deployment anlegen</option>
+            <option value="step">Step zu bestehendem Deployment hinzufügen</option>
+          </select>
         </div>
 
-        <!-- Rechte Spalte: Playbooks + Inventories -->
-        <div class="panel">
-          <h2>Playbooks & Inventories</h2>
+        <!-- Neues Deployment -->
+        <div x-show="createMode==='new'">
           <div class="field">
             <label class="muted">Deployment-Name</label>
             <input type="text" x-model="deploymentName" placeholder="z. B. Rollout-Prod">
           </div>
+
           <div class="field">
             <label class="muted">Playbooks</label>
             <div class="checkbox-list">
@@ -57,6 +66,7 @@
               </template>
             </div>
           </div>
+
           <div class="field">
             <label class="muted">Inventories</label>
             <select x-model="selectedInventory">
@@ -66,92 +76,180 @@
               </template>
             </select>
           </div>
+
           <div class="field">
             <label class="muted">Tags</label>
             <input type="text" x-model="tags" placeholder="setup,deploy">
           </div>
+
           <div class="field">
             <label class="muted">Skip Tags</label>
             <input type="text" x-model="skipTags" placeholder="tests,debug">
           </div>
+
           <div class="field">
-            <label class="muted">Limit (Hostnamen, Komma-getrennt)</label>
+            <label class="muted">Host Limit</label>
             <input type="text" x-model="hostLimit" placeholder="web01,db02">
           </div>
+
           <button class="btn btn-success" @click="createDeployment()" :disabled="!canCreateDeployment()">Deployment
             anlegen</button>
         </div>
-      </div>
-    </template>
 
-    <!-- Tab 2: Deployment ausführen -->
-    <template x-if="tab==='execute'">
-      <div class="row">
-        <!-- Linke Spalte: Deployments -->
-        <div class="panel">
-          <h2>Deployments</h2>
-
-          <!-- Dropdown für Repo-Auswahl -->
+        <!-- Step hinzufügen -->
+        <div x-show="createMode==='step'">
           <div class="field">
-            <label class="muted">Repo auswählen</label>
-            <select x-model="repoId" @change="loadDeployments()">
+            <label class="muted">Deployment auswählen</label>
+            <select x-model="selectedDeploymentId" @change="loadPlaybooksAndInventories()">
               <option value="">-- bitte wählen --</option>
-              <template x-for="r in repos" :key="r.id">
-                <option :value="r.id" x-text="r.id"></option>
+              <template x-for="d in deployments" :key="d.id">
+                <option :value="d.id" x-text="d.name"></option>
               </template>
             </select>
           </div>
 
-          <table class="table" x-show="repoId">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>ID</th>
-                <th>Playbooks</th>
-                <th>Inventories</th>
-                <th>Tags</th>
-                <th>Skip Tags</th>
-                <th>Limit</th>
-                <th>Aktionen</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="d in deployments" :key="d.id">
-                <tr>
-                  <td x-text="d.name"></td>
-                  <td x-text="d.id"></td>
-                  <td x-text="joinDistinct(d.items.map(i=>i.playbook))"></td>
-                  <td x-text="joinDistinct(d.items.map(i=>i.inventory))"></td>
-                  <td x-text="joinDistinct(d.items.map(i=>i.tags))"></td>
-                  <td x-text="joinDistinct(d.items.map(i=>i.skipTags))"></td>
-                  <td x-text="joinDistinct(d.items.map(i=>i.hostLimit))"></td>
-                  <td>
-                    <button class="btn btn-accent" @click="runDeployment(d.id)">Starten</button>
-                    <button class="btn btn-danger" @click="deleteDeployment(d.id)">Löschen</button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
+          <div x-show="selectedDeploymentId">
+            <h3>Step hinzufügen</h3>
 
-        <!-- Rechte Spalte: Outputs -->
-        <div class="panel">
-          <h2>Runs / Outputs</h2>
-          <template x-for="o in outputs" :key="o.id">
-            <div class="output-block">
-              <h3>Deployment <span x-text="o.deploymentId"></span></h3>
-              <pre x-text="o.text"></pre>
-              <div class="actions">
-                <button class="btn btn-accent" @click="copySingleOutput(o)">Copy</button>
-                <button class="btn btn-danger" @click="deleteSingleOutput(o.id)">Löschen</button>
+            <div class="field">
+              <label class="muted">Playbooks</label>
+              <div class="checkbox-list">
+                <template x-for="p in playbooks" :key="p">
+                  <label class="checkbox-item">
+                    <input type="checkbox" :value="p" x-model="selectedPlaybooks">
+                    <span x-text="p"></span>
+                  </label>
+                </template>
               </div>
             </div>
-          </template>
-          <div x-show="outputs.length===0" class="muted">Noch keine Runs gestartet.</div>
+
+            <div class="field">
+              <label class="muted">Inventories</label>
+              <select x-model="selectedInventory">
+                <option value="">-- bitte wählen --</option>
+                <template x-for="i in inventories" :key="i">
+                  <option x-text="i"></option>
+                </template>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="muted">Tags</label>
+              <input type="text" x-model="tags" placeholder="setup,deploy">
+            </div>
+
+            <div class="field">
+              <label class="muted">Skip Tags</label>
+              <input type="text" x-model="skipTags" placeholder="tests,debug">
+            </div>
+
+            <div class="field">
+              <label class="muted">Host Limit</label>
+              <input type="text" x-model="hostLimit" placeholder="web01,db02">
+            </div>
+
+            <button class="btn btn-success" @click="addStepToDeployment()"
+              :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
+              Step hinzufügen
+            </button>
+          </div>
         </div>
       </div>
-    </template>
+    </div>
+  </template>
+
+  <!-- Tab 2: Deployment ausführen -->
+  <template x-if="tab==='execute'">
+    <div class="row">
+      <!-- Linke Spalte: Deployments -->
+      <div class="panel">
+        <h2>Deployments</h2>
+
+        <!-- Dropdown für Repo-Auswahl -->
+        <div class="field">
+          <label class="muted">Repo auswählen</label>
+          <select x-model="repoId" @change="loadDeployments()">
+            <option value="">-- bitte wählen --</option>
+            <template x-for="r in repos" :key="r.id">
+              <option :value="r.id" x-text="r.id"></option>
+            </template>
+          </select>
+        </div>
+
+        <table class="table" x-show="repoId">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>ID / Steps</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="d in deployments" :key="d.id">
+              <tr>
+                <td x-text="d.name"></td>
+                <td>
+                  <!-- ID anzeigen -->
+                  <div><strong x-text="d.id"></strong></div>
+
+                  <!-- Untertabelle für Steps -->
+                  <div x-show="d.items.length > 0" class="steps-subtable">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Playbook</th>
+                          <th>Inventory</th>
+                          <th>Tags</th>
+                          <th>Skip Tags</th>
+                          <th>Host Limit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="item in d.items" :key="item.id">
+                          <tr>
+                            <td x-text="item.playbook"></td>
+                            <td x-text="item.inventory"></td>
+                            <td x-text="item.tags"></td>
+                            <td x-text="item.skipTags"></td>
+                            <td x-text="item.hostLimit"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div x-show="d.items.length===0" class="muted">Keine Steps vorhanden</div>
+                </td>
+                <td>
+                  <template x-if="d.items.length > 0">
+                    <button class="btn btn-accent" @click="runDeployment(d.id)">Starten</button>
+                  </template>
+                  <button class="btn btn-danger" @click="deleteDeployment(d.id)">Löschen</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+
+      </div>
+
+      <!-- Rechte Spalte: Outputs -->
+      <div class="panel">
+        <h2>Runs / Outputs</h2>
+        <template x-for="o in outputs" :key="o.id">
+          <div class="output-block">
+            <h3>Deployment <span x-text="o.deploymentId"></span></h3>
+            <pre x-text="o.text"></pre>
+            <div class="actions">
+              <button class="btn btn-accent" @click="copySingleOutput(o)">Copy</button>
+              <button class="btn btn-danger" @click="deleteSingleOutput(o.id)">Löschen</button>
+            </div>
+          </div>
+        </template>
+        <div x-show="outputs.length===0" class="muted">Noch keine Runs gestartet.</div>
+      </div>
+    </div>
+  </template>
 
   </div>
 
