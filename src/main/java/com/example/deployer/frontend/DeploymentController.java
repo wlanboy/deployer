@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,6 +69,29 @@ public class DeploymentController {
                 .toList();
     }
 
+    @GetMapping("/inventories")
+    public List<String> listInventories(@PathVariable String repoId) {
+        GitConfig.Repo repo = gitConfig.findById(repoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repo not found"));
+
+        File inventoriesDir = new File(repo.getPath(), repo.getInventoriesDir());
+        if (!inventoriesDir.exists() || !inventoriesDir.isDirectory()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Kein gültiger Inventories-Ordner im Repo gefunden");
+        }
+
+        File[] files = inventoriesDir.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
+        if (files == null)
+            return List.of();
+
+        return Arrays.stream(files)
+                .filter(File::isFile)
+                .map(File::getName)
+                .map(name -> name.replaceAll("\\.ya?ml$", "")) // Endung entfernen
+                .sorted()
+                .toList();
+    }
+
     @PostMapping("/deployment")
     public Deployment createDeployment(@PathVariable String repoId, @RequestParam String name) {
         Deployment d = new Deployment(UUID.randomUUID().toString(), name, repoId);
@@ -84,6 +109,23 @@ public class DeploymentController {
         return Map.of("id", d.getId(), "name", d.getName(), "repoId", d.getRepoId(), "items", items);
     }
 
+    @GetMapping("/deployments")
+    public List<Map<String, Object>> listDeployments(@PathVariable String repoId) {
+        List<Deployment> deployments = deploymentRepo.findByRepoId(repoId);
+        return deployments.stream().map(d -> {
+            List<DeploymentItem> items = itemRepo.findByDeploymentId(d.getId());
+            return Map.of(
+                    "id", d.getId(),
+                    "name", d.getName(),
+                    "repoId", d.getRepoId(),
+                    "items", items.stream().map(i -> Map.of(
+                            "playbook", i.getPlaybook(),
+                            "inventory", i.getInventory(),
+                            "tags", i.getTags(),
+                            "skipTags", i.getSkipTags())).toList());
+        }).toList();
+    }
+
     @PutMapping("/deployment/{id}")
     public Map<String, String> addPlaybook(@PathVariable String repoId, @PathVariable String id,
             @RequestParam String playbook,
@@ -98,6 +140,25 @@ public class DeploymentController {
         DeploymentItem item = new DeploymentItem(null, id, repoId, playbook, inventory, tags, skipTags);
         itemRepo.save(item);
         return Map.of("status", "added", "deploymentId", id, "repoId", repoId);
+    }
+
+    @DeleteMapping("/deployment/{id}")
+    public ResponseEntity<Void> deleteDeployment(@PathVariable String repoId, @PathVariable String id) {
+        Deployment d = deploymentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deployment not found"));
+
+        if (!d.getRepoId().equals(repoId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deployment gehört zu anderem Repo");
+        }
+
+        // Zuerst alle Items löschen
+        List<DeploymentItem> items = itemRepo.findByDeploymentId(id);
+        itemRepo.deleteAll(items);
+
+        // Dann das Deployment selbst löschen
+        deploymentRepo.delete(d);
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/rundeployment/{id}")
