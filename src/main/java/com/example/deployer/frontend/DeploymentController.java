@@ -122,7 +122,9 @@ public class DeploymentController {
                             "playbook", i.getPlaybook(),
                             "inventory", i.getInventory(),
                             "tags", i.getTags(),
-                            "skipTags", i.getSkipTags())).toList());
+                            "skipTags", i.getSkipTags(),
+                            "hostLimit", i.getHostLimit()
+                        )).toList());
         }).toList();
     }
 
@@ -131,13 +133,14 @@ public class DeploymentController {
             @RequestParam String playbook,
             @RequestParam String inventory,
             @RequestParam(required = false) String tags,
-            @RequestParam(required = false) String skipTags) {
+            @RequestParam(required = false) String skipTags,
+            @RequestParam(required = false) String hostLimit) {
         Deployment d = deploymentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deployment not found"));
         if (!d.getRepoId().equals(repoId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deployment gehört zu anderem Repo");
         }
-        DeploymentItem item = new DeploymentItem(null, id, repoId, playbook, inventory, tags, skipTags);
+        DeploymentItem item = new DeploymentItem(null, id, repoId, playbook, inventory, tags, skipTags, hostLimit);
         itemRepo.save(item);
         return Map.of("status", "added", "deploymentId", id, "repoId", repoId);
     }
@@ -200,6 +203,9 @@ public class DeploymentController {
                     playbookService.runPlaybookStreamed(
                             playbookFile.getAbsolutePath(),
                             inventoryFile.getAbsolutePath(),
+                            item.getTags(),
+                            item.getSkipTags(),
+                            item.getHostLimit(),
                             emitter);
                 }
                 emitter.complete();

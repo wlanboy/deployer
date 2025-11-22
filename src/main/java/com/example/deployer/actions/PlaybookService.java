@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
-
 @Service
 public class PlaybookService {
 
@@ -24,7 +23,8 @@ public class PlaybookService {
         stats.put("skipped", 0);
         stats.put("failed", 0);
 
-        Pattern p = Pattern.compile("ok=(\\d+)\\s+changed=(\\d+)\\s+unreachable=(\\d+)\\s+failed=(\\d+)\\s+skipped=(\\d+)");
+        Pattern p = Pattern
+                .compile("ok=(\\d+)\\s+changed=(\\d+)\\s+unreachable=(\\d+)\\s+failed=(\\d+)\\s+skipped=(\\d+)");
         Matcher m = p.matcher(output);
         if (m.find()) {
             stats.put("ok", Integer.parseInt(m.group(1)));
@@ -46,8 +46,33 @@ public class PlaybookService {
         return hosts;
     }
 
-    public void runPlaybookStreamed(String playbook, String inventory, ResponseBodyEmitter emitter) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("ansible-playbook", playbook, "-i", inventory);
+    public void runPlaybookStreamed(String playbook,
+            String inventory,
+            String tags,
+            String skipTags,
+            String hostLimit,
+            ResponseBodyEmitter emitter) throws IOException {
+
+        List<String> cmd = new ArrayList<>();
+        cmd.add("ansible-playbook");
+        cmd.add(playbook);
+        cmd.add("-i");
+        cmd.add(inventory);
+
+        if (tags != null && !tags.isBlank()) {
+            cmd.add("--tags");
+            cmd.add(tags);
+        }
+        if (skipTags != null && !skipTags.isBlank()) {
+            cmd.add("--skip-tags");
+            cmd.add(skipTags);
+        }
+        if (hostLimit != null && !hostLimit.isBlank()) {
+            cmd.add("--limit");
+            cmd.add(hostLimit);
+        }
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
@@ -61,4 +86,3 @@ public class PlaybookService {
         }
     }
 }
-

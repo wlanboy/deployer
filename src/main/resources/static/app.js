@@ -17,6 +17,7 @@ function workflow() {
     deploymentName: '',
     tags: '',
     skipTags: '',
+    hostLimit: '',
 
     // Outputs für Runs
     outputs: [],
@@ -94,7 +95,11 @@ function workflow() {
             fetch(`/api/${this.repoId}/deployment/${d.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: `playbook=${encodeURIComponent(p)}&inventory=${encodeURIComponent(this.selectedInventory)}&tags=${encodeURIComponent(this.tags)}&skipTags=${encodeURIComponent(this.skipTags)}`
+                      body: `playbook=${encodeURIComponent(p)}`
+                        + `&inventory=${encodeURIComponent(this.selectedInventory)}`
+                        + `&tags=${encodeURIComponent(this.tags)}`
+                        + `&skipTags=${encodeURIComponent(this.skipTags)}`
+                        + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
             })
           );
           return Promise.all(promises).then(() => d);

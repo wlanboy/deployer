@@ -74,6 +74,10 @@
             <label class="muted">Skip Tags</label>
             <input type="text" x-model="skipTags" placeholder="tests,debug">
           </div>
+          <div class="field">
+            <label class="muted">Limit (Hostnamen, Komma-getrennt)</label>
+            <input type="text" x-model="hostLimit" placeholder="web01,db02">
+          </div>
           <button class="btn btn-success" @click="createDeployment()" :disabled="!canCreateDeployment()">Deployment
             anlegen</button>
         </div>
@@ -107,6 +111,7 @@
                 <th>Inventories</th>
                 <th>Tags</th>
                 <th>Skip Tags</th>
+                <th>Limit</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
@@ -119,6 +124,7 @@
                   <td x-text="joinDistinct(d.items.map(i=>i.inventory))"></td>
                   <td x-text="joinDistinct(d.items.map(i=>i.tags))"></td>
                   <td x-text="joinDistinct(d.items.map(i=>i.skipTags))"></td>
+                  <td x-text="joinDistinct(d.items.map(i=>i.hostLimit))"></td>
                   <td>
                     <button class="btn btn-accent" @click="runDeployment(d.id)">Starten</button>
                     <button class="btn btn-danger" @click="deleteDeployment(d.id)">Löschen</button>

@@ -22,4 +22,5 @@ public class DeploymentItem {
     private String inventory;
     private String tags;
     private String skipTags;
+    private String hostLimit;
 }
