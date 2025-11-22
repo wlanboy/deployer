@@ -1,9 +1,9 @@
 function workflow() {
   return {
     // Tabs: 'create' = anlegen, 'execute' = ausführen
-    tab: 'create',
+    tab: 'execute',
     theme: 'dark',
-    createMode: '',            // 'new' oder 'step'
+    createMode: '',            // 'new', 'step', 'step-edit', 'create' sein
     selectedDeploymentId: '',  // für Step hinzufügen
 
     // Daten
@@ -27,7 +27,6 @@ function workflow() {
     // Init: Repos und Deployments sofort laden
     init() {
       this.loadRepos();
-      this.repoId = "repo1"; // Standard-Repo oder global
       this.loadDeployments();
     },
 
@@ -187,7 +186,37 @@ function workflow() {
       });
     },
 
-    // Deployment löschen
+    editStep(deploymentId, step) {
+      this.createMode = 'step-edit';
+      this.tab = 'create';
+      this.selectedDeploymentId = deploymentId;
+      this.stepId = step.id;
+      this.selectedPlaybooks = [step.playbook];
+      this.selectedInventory = step.inventory;
+      this.tags = step.tags;
+      this.skipTags = step.skipTags;
+      this.hostLimit = step.hostLimit;
+    },
+
+    updateStep() {
+      const body = {
+        playbook: this.selectedPlaybooks[0],
+        inventory: this.selectedInventory,
+        tags: this.tags,
+        skipTags: this.skipTags,
+        hostLimit: this.hostLimit
+      };
+
+      fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}/step/${this.stepId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(() => {
+        this.loadDeployments();
+        this.createMode = ''; 
+      });
+    },
+
     deleteDeployment(id) {
       if (!confirm("Deployment wirklich löschen?")) return;
       fetch(`/api/${this.repoId}/deployment/${id}`, { method: 'DELETE' })

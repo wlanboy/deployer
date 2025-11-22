@@ -13,7 +13,7 @@
   <header>
     <h1>Deployment Workflow</h1>
     <div class="tabs">
-      <button class="btn btn-success" @click="resetDeploymentForm(); tab='create'">
+      <button class="btn btn-success" @click="resetDeploymentForm(); createMode='create'; tab='create'">
         Deployment anlegen
       </button>
       <button class="tab-btn btn-accent" @click="tab='execute'">Deployment ausführen</button>
@@ -25,101 +25,143 @@
 
   <template x-if="tab==='create'">
     <div class="panel">
-      <h2>Deployment anlegen</h2>
+      <div x-show="createMode==='create' || createMode==='new' || createMode==='step'">
+        <h2>Deployment anlegen</h2>
 
-      <!-- Repo-Auswahl -->
-      <div class="field">
-        <label class="muted">Repo auswählen</label>
-        <select x-model="repoId" @change="selectRepo(repoId)">
-          <option value="">-- bitte wählen --</option>
-          <template x-for="r in repos" :key="r.id">
-            <option :value="r.id" x-text="r.id"></option>
-          </template>
-        </select>
-      </div>
-
-      <!-- Nur wenn Repo gewählt -->
-      <div x-show="repoId">
-        <!-- Modus-Auswahl -->
+        <!-- Repo-Auswahl -->
         <div class="field">
-          <label class="muted">Option</label>
-          <select x-model="createMode">
+          <label class="muted">Repo auswählen</label>
+          <select x-model="repoId" @change="selectRepo(repoId)">
             <option value="">-- bitte wählen --</option>
-            <option value="new">Neues Deployment anlegen</option>
-            <option value="step">Step zu bestehendem Deployment hinzufügen</option>
+            <template x-for="r in repos" :key="r.id">
+              <option :value="r.id" x-text="r.id"></option>
+            </template>
           </select>
         </div>
 
-        <!-- Neues Deployment -->
-        <div x-show="createMode==='new'">
+        <!-- Nur wenn Repo gewählt -->
+        <div x-show="repoId">
+          <!-- Modus-Auswahl -->
           <div class="field">
-            <label class="muted">Deployment-Name</label>
-            <input type="text" x-model="deploymentName" placeholder="z. B. Rollout-Prod">
-          </div>
-
-          <button class="btn btn-success" @click="createDeployment()" :disabled="!canCreateDeployment()">Deployment
-            anlegen</button>
-        </div>
-
-        <!-- Step hinzufügen -->
-        <div x-show="createMode==='step'">
-          <div class="field">
-            <label class="muted">Deployment auswählen</label>
-            <select x-model="selectedDeploymentId" @change="loadPlaybooksAndInventories()">
+            <label class="muted">Option</label>
+            <select x-model="createMode">
               <option value="">-- bitte wählen --</option>
-              <template x-for="d in deployments" :key="d.id">
-                <option :value="d.id" x-text="d.name"></option>
-              </template>
+              <option value="new">Neues Deployment anlegen</option>
+              <option value="step">Step zu bestehendem Deployment hinzufügen</option>
             </select>
           </div>
 
-          <div x-show="selectedDeploymentId">
-            <h3>Step hinzufügen</h3>
-
+          <!-- Neues Deployment -->
+          <div x-show="createMode==='new'">
             <div class="field">
-              <label class="muted">Playbooks</label>
-              <div class="checkbox-list">
-                <template x-for="p in playbooks" :key="p">
-                  <label class="checkbox-item">
-                    <input type="checkbox" :value="p" x-model="selectedPlaybooks">
-                    <span x-text="p"></span>
-                  </label>
-                </template>
-              </div>
+              <label class="muted">Deployment-Name</label>
+              <input type="text" x-model="deploymentName" placeholder="z. B. Rollout-Prod">
             </div>
 
+            <button class="btn btn-success" @click="createDeployment()" :disabled="!canCreateDeployment()">Deployment
+              anlegen</button>
+          </div>
+
+          <!-- Step hinzufügen -->
+          <div x-show="createMode==='step'">
             <div class="field">
-              <label class="muted">Inventories</label>
-              <select x-model="selectedInventory">
+              <label class="muted">Deployment auswählen</label>
+              <select x-model="selectedDeploymentId" @change="loadPlaybooksAndInventories()">
                 <option value="">-- bitte wählen --</option>
-                <template x-for="i in inventories" :key="i">
-                  <option x-text="i"></option>
+                <template x-for="d in deployments" :key="d.id">
+                  <option :value="d.id" x-text="d.name"></option>
                 </template>
               </select>
             </div>
 
-            <div class="field">
-              <label class="muted">Tags</label>
-              <input type="text" x-model="tags" placeholder="setup,deploy">
-            </div>
+            <div x-show="selectedDeploymentId">
+              <h3>Step hinzufügen</h3>
 
-            <div class="field">
-              <label class="muted">Skip Tags</label>
-              <input type="text" x-model="skipTags" placeholder="tests,debug">
-            </div>
+              <div class="field">
+                <label class="muted">Playbooks</label>
+                <div class="checkbox-list">
+                  <template x-for="p in playbooks" :key="p">
+                    <label class="checkbox-item">
+                      <input type="checkbox" :value="p" x-model="selectedPlaybooks">
+                      <span x-text="p"></span>
+                    </label>
+                  </template>
+                </div>
+              </div>
 
-            <div class="field">
-              <label class="muted">Host Limit</label>
-              <input type="text" x-model="hostLimit" placeholder="web01,db02">
-            </div>
+              <div class="field">
+                <label class="muted">Inventories</label>
+                <select x-model="selectedInventory">
+                  <option value="">-- bitte wählen --</option>
+                  <template x-for="i in inventories" :key="i">
+                    <option x-text="i"></option>
+                  </template>
+                </select>
+              </div>
 
-            <button class="btn btn-success" @click="addStepToDeployment()"
-              :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
-              Step hinzufügen
-            </button>
+              <div class="field">
+                <label class="muted">Tags</label>
+                <input type="text" x-model="tags" placeholder="setup,deploy">
+              </div>
+
+              <div class="field">
+                <label class="muted">Skip Tags</label>
+                <input type="text" x-model="skipTags" placeholder="tests,debug">
+              </div>
+
+              <div class="field">
+                <label class="muted">Host Limit</label>
+                <input type="text" x-model="hostLimit" placeholder="web01,db02">
+              </div>
+
+              <button class="btn btn-success" @click="addStepToDeployment()"
+                :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
+                Step hinzufügen
+              </button>
+            </div>
           </div>
+
+        </div>
+
+        <div x-show="createMode==='step-edit'">
+          <h3>Step bearbeiten</h3>
+          <div class="field">
+            <label>Playbook</label>
+            <select x-model="selectedPlaybooks[0]">
+              <option value="">-- bitte wählen --</option>
+              <template x-for="p in playbooks" :key="p">
+                <option :value="p" x-text="p"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Inventory</label>
+            <select x-model="selectedInventory">
+              <option value="">-- bitte wählen --</option>
+              <template x-for="i in inventories" :key="i">
+                <option :value="i" x-text="i"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tags</label>
+            <input type="text" x-model="tags">
+          </div>
+          <div class="field">
+            <label>Skip Tags</label>
+            <input type="text" x-model="skipTags">
+          </div>
+          <div class="field">
+            <label>Host Limit</label>
+            <input type="text" x-model="hostLimit">
+          </div>
+          <button class="btn btn-success" @click="updateStep()">Speichern</button>
+          <button class="btn btn-secondary" @click="createMode=''">Abbrechen</button>
         </div>
       </div>
+
     </div>
   </template>
 
@@ -179,6 +221,7 @@
                             <td x-text="item.skipTags"></td>
                             <td x-text="item.hostLimit"></td>
                             <td>
+                              <button class="btn btn-warning" @click="editStep(d.id, item)">Bearbeiten</button>
                               <button class="btn btn-danger" @click="deleteStep(d.id, item.id)">Löschen</button>
                             </td>
                           </tr>

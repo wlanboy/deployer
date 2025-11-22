@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -152,6 +153,20 @@ public class DeploymentController {
         DeploymentItem item = new DeploymentItem(null, id, repoId, playbook, inventory, tags, skipTags, hostLimit);
         itemRepo.save(item);
         return Map.of("status", "added", "deploymentId", id, "repoId", repoId);
+    }
+
+    @PutMapping("/deployment/{deploymentId}/step/{stepId}")
+    public DeploymentItem updateStep(@PathVariable String repoId,
+            @PathVariable String deploymentId,
+            @PathVariable Long stepId,
+            @RequestBody DeploymentItem updated) {
+        DeploymentItem item = itemRepo.findById(stepId).orElseThrow();
+        item.setPlaybook(updated.getPlaybook());
+        item.setInventory(updated.getInventory());
+        item.setTags(updated.getTags());
+        item.setSkipTags(updated.getSkipTags());
+        item.setHostLimit(updated.getHostLimit());
+        return itemRepo.save(item);
     }
 
     @DeleteMapping("/deployment/{id}")
