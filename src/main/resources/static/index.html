@@ -6,7 +6,7 @@
   <title>Deployment Workflow</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body :class="theme">
@@ -17,6 +17,10 @@
         Deployment anlegen
       </button>
       <button class="tab-btn btn-accent" @click="tab='execute'">Deployment ausführen</button>
+      <form action="/logout" method="post" style="margin-left:auto;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button type="submit" class="btn btn-danger">Logout</button>
+      </form>
     </div>
     <div class="theme-switch">
       <button class="btn" @click="toggleTheme()">Theme wechseln</button>
@@ -265,7 +269,7 @@
 
   </div>
 
-  <script src="app.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 
 </html>
