@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div class="login-container">
+    <h2>Login mit Token</h2>
+    <form method="post" action="/login">
+      <div class="field">
+        <label for="username">Token</label>
+        <!-- Token wird hier eingegeben -->
+        <input type="text" id="username" name="username" required>
+      </div>
+
+      <!-- Passwortfeld bleibt leer, aber Spring Security erwartet es -->
+      <input type="hidden" name="password" value="">
+
+      <button class="btn btn-success" type="submit">Einloggen</button>
+    </form>
+
+    <!-- Fehlermeldung anzeigen, wenn ?error gesetzt ist -->
+    <div th:if="${param.error}" class="alert alert-danger">
+      Ungültiger Token.
+    </div>
+
+    <!-- Logout-Meldung anzeigen, wenn ?logout gesetzt ist -->
+    <div th:if="${param.logout}" class="alert alert-success">
+      Du wurdest erfolgreich ausgeloggt.
+    </div>
+
+  </div>
+</body>
+
+</html>
