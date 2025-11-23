@@ -24,18 +24,15 @@ function workflow() {
     // Outputs für Runs
     outputs: [],
 
-    // Init: Repos und Deployments sofort laden
     init() {
       this.loadRepos();
       this.loadDeployments();
     },
 
-    // Theme toggle
     toggleTheme() {
       this.theme = this.theme === 'dark' ? 'light' : 'dark';
     },
 
-    // Hilfsfunktionen
     joinDistinct(arr) {
       const vals = (arr || []).filter(Boolean);
       return [...new Set(
@@ -67,7 +64,8 @@ function workflow() {
       }
     },
 
-    addStepToDeployment() {
+    addStepToDeployment(selectedDeploymentId, reproId) {
+      this.reproId = reproId;
       if (!this.selectedDeploymentId) return;
       const promises = this.selectedPlaybooks.map(p =>
         fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}`, {
@@ -86,14 +84,12 @@ function workflow() {
       });
     },
 
-    // Repos laden
     loadRepos() {
       fetch('/repos')
         .then(r => r.json())
         .then(data => { this.repos = data; });
     },
 
-    // Repo laden
     selectRepo(id) {
       this.repoId = id;
 
@@ -164,7 +160,25 @@ function workflow() {
         });
     },
 
-    // Deployment starten → Output-Block erzeugen
+    addStep(deploymentId, reproId) {
+      this.createMode = 'step-add';
+      this.tab = 'create';
+      this.stepId = null;
+
+      this.selectedDeploymentId = deploymentId;
+
+      this.selectedPlaybooks = [];
+      this.selectedInventory = '';
+      this.tags = '';
+      this.skipTags = '';
+      this.hostLimit = '';
+
+      this.loadRepos();
+      this.repoId = reproId;
+      this.selectRepo(this.repoId);
+      this.loadPlaybooksAndInventories();
+    },
+
     runDeployment(id) {
       const outputObj = { id: Date.now(), deploymentId: id, text: '' };
       this.outputs.push(outputObj);
@@ -186,7 +200,7 @@ function workflow() {
       });
     },
 
-    editStep(deploymentId, step) {
+    editStep(deploymentId, step, repoId) {
       this.createMode = 'step-edit';
       this.tab = 'create';
       this.selectedDeploymentId = deploymentId;
@@ -196,6 +210,11 @@ function workflow() {
       this.tags = step.tags;
       this.skipTags = step.skipTags;
       this.hostLimit = step.hostLimit;
+
+      this.loadRepos();
+      this.repoId = repoId;
+      this.selectRepo(this.repoId);
+      this.loadPlaybooksAndInventories();
     },
 
     updateStep() {
@@ -213,7 +232,8 @@ function workflow() {
         body: JSON.stringify(body)
       }).then(() => {
         this.loadDeployments();
-        this.createMode = ''; 
+        this.createMode = '';
+        this.tab = 'execute';
       });
     },
 
@@ -223,11 +243,13 @@ function workflow() {
         .then(() => this.loadDeployments());
     },
 
-    deleteStep(deploymentId, stepId) {
+    deleteStep(deploymentId, stepId, repoId) {
       fetch(`/api/${this.repoId}/deployment/${deploymentId}/step/${stepId}`, {
         method: 'DELETE'
       }).then(() => {
         this.loadDeployments();
+        this.createMode = '';
+        this.tab = 'execute';
       });
     },
 
