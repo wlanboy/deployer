@@ -8,3 +8,8 @@ git:
       path: ../ansiblehosts
       playbooksDir: playbooks
       inventoriesDir: inventory
+
+security:
+  tokens:
+    count: 10
+    file: tokens.txt
