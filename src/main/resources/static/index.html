@@ -118,7 +118,7 @@
                 <input type="text" x-model="hostLimit" placeholder="web01,db02">
               </div>
 
-              <button class="btn btn-success" @click="addStepToDeployment()"
+              <button class="btn btn-success" @click="addStepToDeployment(selectedDeploymentId, repoId)"
                 :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
                 Step hinzufügen
               </button>
@@ -127,8 +127,8 @@
         </div> <!--x-show="repoId"-->
       </div> <!--x-show="createMode==='create' || createMode==='new' || createMode==='step'"-->
       
-      <div x-show="createMode==='step-edit'">
-        <h3>Step bearbeiten</h3>
+      <div x-show="createMode==='step-edit' || createMode==='step-add'">
+        <h3 x-text="createMode==='step-edit' ? 'Step bearbeiten' : 'Step hinzufügen'"></h3>
         <div class="field">
           <label>Playbook</label>
           <select x-model="selectedPlaybooks[0]">
@@ -161,12 +161,23 @@
           <label>Host Limit</label>
           <input type="text" x-model="hostLimit">
         </div>
-        <button class="btn btn-success" @click="updateStep()">Speichern</button>
+
+        <button class="btn btn-success"
+                x-show="createMode==='step-add'"
+                @click="addStepToDeployment()"
+                :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
+          Step hinzufügen
+        </button>
+
+        <button class="btn btn-success"
+                x-show="createMode==='step-edit'"
+                @click="updateStep()">
+          Speichern
+        </button>
         <button class="btn btn-secondary" @click="createMode=''">Abbrechen</button>
-      </div>
+      </div><!-- x-show="createMode==='step-edit'" -->
 
-
-    </div>
+    </div><!-- panel -->
   </template>
 
   <!-- Tab 2: Deployment ausführen -->
@@ -225,8 +236,9 @@
                             <td x-text="item.skipTags"></td>
                             <td x-text="item.hostLimit"></td>
                             <td>
-                              <button class="btn btn-warning" @click="editStep(d.id, item)">Bearbeiten</button>
-                              <button class="btn btn-danger" @click="deleteStep(d.id, item.id)">Löschen</button>
+                              <button class="btn btn-success" @click="addStep(d.id, d.repoId)">Step hinzufügen</button>
+                              <button class="btn btn-warning" @click="editStep(d.id, item, d.repoId)">Bearbeiten</button>
+                              <button class="btn btn-danger" @click="deleteStep(d.id, item.id, d.repoId)">Löschen</button>
                             </td>
                           </tr>
                         </template>
