@@ -124,47 +124,47 @@
               </button>
             </div>
           </div>
-
+        </div> <!--x-show="repoId"-->
+      </div> <!--x-show="createMode==='create' || createMode==='new' || createMode==='step'"-->
+      
+      <div x-show="createMode==='step-edit'">
+        <h3>Step bearbeiten</h3>
+        <div class="field">
+          <label>Playbook</label>
+          <select x-model="selectedPlaybooks[0]">
+            <option value="">-- bitte wählen --</option>
+            <template x-for="p in playbooks" :key="p">
+              <option :value="p" x-text="p"></option>
+            </template>
+          </select>
         </div>
 
-        <div x-show="createMode==='step-edit'">
-          <h3>Step bearbeiten</h3>
-          <div class="field">
-            <label>Playbook</label>
-            <select x-model="selectedPlaybooks[0]">
-              <option value="">-- bitte wählen --</option>
-              <template x-for="p in playbooks" :key="p">
-                <option :value="p" x-text="p"></option>
-              </template>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Inventory</label>
-            <select x-model="selectedInventory">
-              <option value="">-- bitte wählen --</option>
-              <template x-for="i in inventories" :key="i">
-                <option :value="i" x-text="i"></option>
-              </template>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Tags</label>
-            <input type="text" x-model="tags">
-          </div>
-          <div class="field">
-            <label>Skip Tags</label>
-            <input type="text" x-model="skipTags">
-          </div>
-          <div class="field">
-            <label>Host Limit</label>
-            <input type="text" x-model="hostLimit">
-          </div>
-          <button class="btn btn-success" @click="updateStep()">Speichern</button>
-          <button class="btn btn-secondary" @click="createMode=''">Abbrechen</button>
+        <div class="field">
+          <label>Inventory</label>
+          <select x-model="selectedInventory">
+            <option value="">-- bitte wählen --</option>
+            <template x-for="i in inventories" :key="i">
+              <option :value="i" x-text="i"></option>
+            </template>
+          </select>
         </div>
+
+        <div class="field">
+          <label>Tags</label>
+          <input type="text" x-model="tags">
+        </div>
+        <div class="field">
+          <label>Skip Tags</label>
+          <input type="text" x-model="skipTags">
+        </div>
+        <div class="field">
+          <label>Host Limit</label>
+          <input type="text" x-model="hostLimit">
+        </div>
+        <button class="btn btn-success" @click="updateStep()">Speichern</button>
+        <button class="btn btn-secondary" @click="createMode=''">Abbrechen</button>
       </div>
+
 
     </div>
   </template>
