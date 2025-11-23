@@ -7,6 +7,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import jakarta.transaction.Transactional;
+
 @Component
 public class TokenScheduler {
 
@@ -24,6 +26,7 @@ public class TokenScheduler {
 
     /** Jede Stunde */
     @Scheduled(cron = "0 0 * * * *") 
+    @Transactional
     public void refreshTokens() throws IOException {
         tokenService.cleanupExpiredTokens();
     }

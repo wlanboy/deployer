@@ -62,6 +62,6 @@ public class TokenService {
     }
 
     private String generateRandomToken() {
-        return java.util.UUID.randomUUID().toString().substring(0, 12);
+        return java.util.UUID.randomUUID().toString();
     }
 }
