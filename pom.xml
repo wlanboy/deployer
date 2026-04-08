@@ -29,6 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<start-class>com.example.deployer.DeployerApplication</start-class>
 	</properties>
 	<dependencies>
 		<dependency>
