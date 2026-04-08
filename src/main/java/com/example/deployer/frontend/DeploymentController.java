@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,15 +37,18 @@ public class DeploymentController {
     private final DeploymentItemRepository itemRepo;
     private final PlaybookService playbookService;
     private final GitConfig gitConfig;
+    private final ExecutorService executorService;
 
     public DeploymentController(DeploymentRepository deploymentRepo,
             DeploymentItemRepository itemRepo,
             PlaybookService playbookService,
-            GitConfig gitConfig) {
+            GitConfig gitConfig,
+            ExecutorService executorService) {
         this.deploymentRepo = deploymentRepo;
         this.itemRepo = itemRepo;
         this.playbookService = playbookService;
         this.gitConfig = gitConfig;
+        this.executorService = executorService;
     }
 
     @GetMapping("/playbooks")
@@ -160,7 +163,11 @@ public class DeploymentController {
             @PathVariable String deploymentId,
             @PathVariable Long stepId,
             @RequestBody DeploymentItem updated) {
-        DeploymentItem item = itemRepo.findById(stepId).orElseThrow();
+        DeploymentItem item = itemRepo.findById(stepId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Step not found"));
+        if (!item.getDeploymentId().equals(deploymentId) || !item.getRepoId().equals(repoId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Step gehört nicht zu diesem Deployment");
+        }
         item.setPlaybook(updated.getPlaybook());
         item.setInventory(updated.getInventory());
         item.setTags(updated.getTags());
@@ -192,7 +199,12 @@ public class DeploymentController {
     public void deleteStep(@PathVariable String repoId,
             @PathVariable String deploymentId,
             @PathVariable Long stepId) {
-        itemRepo.deleteById(stepId);
+        DeploymentItem item = itemRepo.findById(stepId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Step not found"));
+        if (!item.getDeploymentId().equals(deploymentId) || !item.getRepoId().equals(repoId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Step gehört nicht zu diesem Deployment");
+        }
+        itemRepo.delete(item);
     }
 
     @GetMapping("/rundeployment/{id}")
@@ -212,7 +224,7 @@ public class DeploymentController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repo not found"));
 
         ResponseBodyEmitter emitter = new ResponseBodyEmitter();
-        Executors.newSingleThreadExecutor().submit(() -> {
+        executorService.submit(() -> {
             try {
                 for (DeploymentItem item : items) {
                     // Playbook-Datei suchen (.yml/.yaml)
