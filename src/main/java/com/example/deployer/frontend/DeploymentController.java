@@ -283,7 +283,28 @@ public class DeploymentController {
     }
 
     private File resolveFileWithYamlExtensions(File baseDir, String nameWithoutExt) {
+        // #2 Reject path traversal sequences and absolute paths before building the File
+        if (nameWithoutExt == null
+                || nameWithoutExt.contains("..")
+                || nameWithoutExt.contains("/")
+                || nameWithoutExt.contains("\\")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ungültiger Dateiname: " + nameWithoutExt);
+        }
+
         File yml = new File(baseDir, nameWithoutExt + ".yml");
+
+        // #2 Canonical-path check: resolved file must stay inside baseDir
+        try {
+            String base = baseDir.getCanonicalPath() + File.separator;
+            if (!yml.getCanonicalPath().startsWith(base)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ungültiger Dateipfad");
+            }
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Fehler beim Prüfen des Dateipfads");
+        }
+
         File yaml = new File(baseDir, nameWithoutExt + ".yaml");
         if (yml.exists())
             return yml;
