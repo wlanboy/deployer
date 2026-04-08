@@ -29,6 +29,18 @@ function workflow() {
       this.loadDeployments();
     },
 
+    getCsrfToken() {
+      const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    },
+
+    logout() {
+      fetch('/logout', {
+        method: 'POST',
+        headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
+      }).then(() => { window.location.href = '/login?logout'; });
+    },
+
     toggleTheme() {
       this.theme = this.theme === 'dark' ? 'light' : 'dark';
     },
@@ -70,7 +82,7 @@ function workflow() {
       const promises = this.selectedPlaybooks.map(p =>
         fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
           body: `playbook=${encodeURIComponent(p)}`
             + `&inventory=${encodeURIComponent(this.selectedInventory)}`
             + `&tags=${encodeURIComponent(this.tags)}`
@@ -136,7 +148,7 @@ function workflow() {
       if (!this.canCreateDeployment()) return;
       fetch(`/api/${this.repoId}/deployment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
         body: `name=${encodeURIComponent(this.deploymentName)}`
       })
         .then(r => r.json())
@@ -144,7 +156,7 @@ function workflow() {
           const promises = this.selectedPlaybooks.map(p =>
             fetch(`/api/${this.repoId}/deployment/${d.id}`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
               body: `playbook=${encodeURIComponent(p)}`
                 + `&inventory=${encodeURIComponent(this.selectedInventory)}`
                 + `&tags=${encodeURIComponent(this.tags)}`
@@ -160,23 +172,25 @@ function workflow() {
         });
     },
 
-    addStep(deploymentId, reproId) {
+    addStep(deploymentId, repoId) {
       this.createMode = 'step-add';
       this.tab = 'create';
       this.stepId = null;
-
       this.selectedDeploymentId = deploymentId;
-
       this.selectedPlaybooks = [];
       this.selectedInventory = '';
       this.tags = '';
       this.skipTags = '';
       this.hostLimit = '';
+      this.repoId = repoId;
 
-      this.loadRepos();
-      this.repoId = reproId;
-      this.selectRepo(this.repoId);
-      this.loadPlaybooksAndInventories();
+      Promise.all([
+        fetch(`/api/${repoId}/playbooks`).then(r => r.json()),
+        fetch(`/api/${repoId}/inventories`).then(r => r.json())
+      ]).then(([playbooks, inventories]) => {
+        this.playbooks = playbooks;
+        this.inventories = inventories;
+      });
     },
 
     runDeployment(id) {
@@ -205,16 +219,20 @@ function workflow() {
       this.tab = 'create';
       this.selectedDeploymentId = deploymentId;
       this.stepId = step.id;
-      this.selectedPlaybooks = [step.playbook];
-      this.selectedInventory = step.inventory;
-      this.tags = step.tags;
-      this.skipTags = step.skipTags;
-      this.hostLimit = step.hostLimit;
-
-      this.loadRepos();
+      this.tags = step.tags || '';
+      this.skipTags = step.skipTags || '';
+      this.hostLimit = step.hostLimit || '';
       this.repoId = repoId;
-      this.selectRepo(this.repoId);
-      this.loadPlaybooksAndInventories();
+
+      Promise.all([
+        fetch(`/api/${repoId}/playbooks`).then(r => r.json()),
+        fetch(`/api/${repoId}/inventories`).then(r => r.json())
+      ]).then(([playbooks, inventories]) => {
+        this.playbooks = playbooks;
+        this.inventories = inventories;
+        this.selectedPlaybooks = [step.playbook];
+        this.selectedInventory = step.inventory;
+      });
     },
 
     updateStep() {
@@ -228,7 +246,7 @@ function workflow() {
 
       fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}/step/${this.stepId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': this.getCsrfToken() },
         body: JSON.stringify(body)
       }).then(() => {
         this.loadDeployments();
@@ -239,13 +257,14 @@ function workflow() {
 
     deleteDeployment(id) {
       if (!confirm("Deployment wirklich löschen?")) return;
-      fetch(`/api/${this.repoId}/deployment/${id}`, { method: 'DELETE' })
+      fetch(`/api/${this.repoId}/deployment/${id}`, { method: 'DELETE', headers: { 'X-XSRF-TOKEN': this.getCsrfToken() } })
         .then(() => this.loadDeployments());
     },
 
     deleteStep(deploymentId, stepId, repoId) {
       fetch(`/api/${this.repoId}/deployment/${deploymentId}/step/${stepId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
       }).then(() => {
         this.loadDeployments();
         this.createMode = '';
