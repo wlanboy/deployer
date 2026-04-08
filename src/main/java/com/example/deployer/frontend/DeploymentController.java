@@ -208,8 +208,31 @@ public class DeploymentController {
         itemRepo.delete(item);
     }
 
-    @GetMapping("/rundeployment/{id}")
-    public ResponseBodyEmitter runDeployment(@PathVariable String repoId, @PathVariable String id) {
+    @GetMapping("/deployment/{id}/requires-become")
+    public Map<String, Boolean> requiresBecome(@PathVariable String repoId, @PathVariable String id) {
+        Deployment d = deploymentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deployment not found"));
+        if (!d.getRepoId().equals(repoId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Deployment gehört zu anderem Repo");
+        }
+        GitConfig.Repo repo = gitConfig.findById(repoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repo not found"));
+
+        boolean needsBecome = itemRepo.findByDeploymentId(id).stream().anyMatch(item -> {
+            File playbookFile = resolveFileWithYamlExtensions(
+                    new File(repo.getPath(), repo.getPlaybooksDir()), item.getPlaybook());
+            try {
+                return playbookService.requiresBecome(playbookFile.getCanonicalPath());
+            } catch (IOException e) {
+                return false;
+            }
+        });
+        return Map.of("requiresBecome", needsBecome);
+    }
+
+    @PostMapping("/rundeployment/{id}")
+    public ResponseBodyEmitter runDeployment(@PathVariable String repoId, @PathVariable String id,
+            @RequestParam(required = false) String becomePassword) {
         Deployment d = deploymentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Deployment not found"));
         if (!d.getRepoId().equals(repoId)) {
@@ -228,7 +251,6 @@ public class DeploymentController {
         executorService.submit(() -> {
             try {
                 for (DeploymentItem item : items) {
-                    // Playbook-Datei suchen (.yml/.yaml)
                     File playbookFile = resolveFileWithYamlExtensions(
                             new File(repo.getPath(), repo.getPlaybooksDir()), item.getPlaybook());
                     if (!playbookFile.exists()) {
@@ -236,7 +258,6 @@ public class DeploymentController {
                         continue;
                     }
 
-                    // Inventory-Datei suchen (.yml/.yaml)
                     File inventoryFile = resolveFileWithYamlExtensions(
                             new File(repo.getPath(), repo.getInventoriesDir()), item.getInventory());
                     if (!inventoryFile.exists()) {
@@ -250,6 +271,7 @@ public class DeploymentController {
                             item.getTags(),
                             item.getSkipTags(),
                             item.getHostLimit(),
+                            becomePassword,
                             emitter);
                 }
                 emitter.complete();

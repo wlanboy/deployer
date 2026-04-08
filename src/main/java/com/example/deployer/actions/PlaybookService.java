@@ -1,8 +1,11 @@
 package com.example.deployer.actions;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,9 +15,30 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
+import org.yaml.snakeyaml.Yaml;
 
 @Service
 public class PlaybookService {
+
+    public boolean requiresBecome(String playbookPath) {
+        try (FileReader reader = new FileReader(playbookPath)) {
+            Yaml yaml = new Yaml();
+            List<Map<String, Object>> plays = yaml.load(reader);
+            if (plays == null) return false;
+            for (Map<String, Object> play : plays) {
+                if (Boolean.TRUE.equals(play.get("become"))) return true;
+                Object tasks = play.get("tasks");
+                if (tasks instanceof List<?> taskList) {
+                    for (Object task : taskList) {
+                        if (task instanceof Map<?, ?> taskMap && Boolean.TRUE.equals(taskMap.get("become"))) return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public Map<String, Integer> parseStats(String output) {
         Map<String, Integer> stats = new HashMap<>();
@@ -51,6 +75,7 @@ public class PlaybookService {
             String tags,
             String skipTags,
             String hostLimit,
+            String becomePassword,
             ResponseBodyEmitter emitter) throws IOException {
 
         List<String> cmd = new ArrayList<>();
@@ -72,12 +97,25 @@ public class PlaybookService {
             cmd.add(hostLimit);
         }
 
+        // Befehl ohne Passwort-Datei für die Ausgabe merken
+        String displayCmd = String.join(" ", cmd);
+
+        Path becomeFile = null;
+        if (becomePassword != null && !becomePassword.isBlank()) {
+            becomeFile = Files.createTempFile("ansible-become-", ".pwd");
+            becomeFile.toFile().setReadable(false, false);
+            becomeFile.toFile().setReadable(true, true);
+            Files.writeString(becomeFile, becomePassword);
+            cmd.add("--become-password-file");
+            cmd.add(becomeFile.toString());
+        }
+
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.environment().put("ANSIBLE_HOST_KEY_CHECKING", "False");
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
-        emitter.send("$ " + String.join(" ", cmd) + "\n\n");
+        emitter.send("$ " + displayCmd + "\n\n");
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
@@ -86,6 +124,10 @@ public class PlaybookService {
             }
         } catch (Exception e) {
             emitter.send("❌ Fehler: " + e.getMessage());
+        } finally {
+            if (becomeFile != null) {
+                Files.deleteIfExists(becomeFile);
+            }
         }
     }
 }
