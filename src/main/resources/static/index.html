@@ -17,16 +17,14 @@
         Deployment anlegen
       </button>
       <button class="tab-btn btn-accent" @click="tab='execute'">Deployment ausführen</button>
-      <form action="/logout" method="post" style="margin-left:auto;">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-        <button type="submit" class="btn btn-danger">Logout</button>
-      </form>
+      <button class="btn btn-danger" style="margin-left:auto;" @click="logout()">Logout</button>
     </div>
     <div class="theme-switch">
       <button class="btn" @click="toggleTheme()">Theme wechseln</button>
     </div>
   </header>
 
+  <div class="content">
   <template x-if="tab==='create'">
     <div class="panel">
       <div x-show="createMode==='create' || createMode==='new' || createMode==='step'">
@@ -198,66 +196,56 @@
           </select>
         </div>
 
-        <table class="table" x-show="repoId">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>ID / Steps</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="d in deployments" :key="d.id">
-              <tr>
-                <td x-text="d.name"></td>
-                <td>
-                  <!-- ID anzeigen -->
-                  <div><strong x-text="d.id"></strong></div>
+        <div class="deployment-list" x-show="repoId">
+          <template x-for="d in deployments" :key="d.id">
+            <div class="deployment-card">
 
-                  <!-- Untertabelle für Steps -->
-                  <div x-show="d.items.length > 0" class="steps-subtable">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Playbook</th>
-                          <th>Inventory</th>
-                          <th>Tags</th>
-                          <th>Skip Tags</th>
-                          <th>Host Limit</th>
-                          <th>Aktionen</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <template x-for="item in d.items" :key="item.id">
-                          <tr>
-                            <td x-text="item.playbook"></td>
-                            <td x-text="item.inventory"></td>
-                            <td x-text="item.tags"></td>
-                            <td x-text="item.skipTags"></td>
-                            <td x-text="item.hostLimit"></td>
-                            <td>
-                              <button class="btn btn-success" @click="addStep(d.id, d.repoId)">Step hinzufügen</button>
-                              <button class="btn btn-warning" @click="editStep(d.id, item, d.repoId)">Bearbeiten</button>
-                              <button class="btn btn-danger" @click="deleteStep(d.id, item.id, d.repoId)">Löschen</button>
-                            </td>
-                          </tr>
-                        </template>
-                      </tbody>
-                    </table>
-                  </div>
+              <div class="deployment-header">
+                <span class="deployment-name" x-text="d.name"></span>
+                <div class="deployment-actions">
+                  <button class="btn btn-accent btn-sm" x-show="d.items.length > 0" @click="runDeployment(d.id)">&#9654; Starten</button>
+                  <button class="btn btn-success btn-sm" @click="addStep(d.id, d.repoId)">+ Step</button>
+                  <button class="btn btn-danger btn-sm" @click="deleteDeployment(d.id)">Löschen</button>
+                </div>
+              </div>
 
-                  <div x-show="d.items.length===0" class="muted">Keine Steps vorhanden</div>
-                </td>
-                <td>
-                  <template x-if="d.items.length > 0">
-                    <button class="btn btn-accent" @click="runDeployment(d.id)">Starten</button>
-                  </template>
-                  <button class="btn btn-danger" @click="deleteDeployment(d.id)">Löschen</button>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+              <div class="steps-table-wrap" x-show="d.items.length > 0">
+                <table class="steps-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Playbook</th>
+                      <th>Inventory</th>
+                      <th>Tags</th>
+                      <th>Skip Tags</th>
+                      <th>Host Limit</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(item, idx) in d.items" :key="item.id">
+                      <tr>
+                        <td class="step-nr" x-text="idx + 1"></td>
+                        <td x-text="item.playbook"></td>
+                        <td x-text="item.inventory"></td>
+                        <td x-text="item.tags || '—'"></td>
+                        <td x-text="item.skipTags || '—'"></td>
+                        <td x-text="item.hostLimit || '—'"></td>
+                        <td class="step-actions">
+                          <button class="btn btn-warning btn-sm" @click="editStep(d.id, item, d.repoId)">Bearbeiten</button>
+                          <button class="btn btn-danger btn-sm" @click="deleteStep(d.id, item.id, d.repoId)">Löschen</button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="no-steps" x-show="d.items.length === 0">Noch keine Steps — klicke "+ Step" um einen hinzuzufügen.</div>
+            </div>
+          </template>
+          <div class="muted" x-show="deployments.length === 0">Keine Deployments vorhanden.</div>
+        </div>
 
       </div>
 
@@ -278,8 +266,7 @@
       </div>
     </div>
   </template>
-
-  </div>
+  </div><!-- content -->
 
   <script src="/js/app.js"></script>
 </body>
