@@ -256,6 +256,30 @@ body.light .output-block pre {
   .row { grid-template-columns: 1fr; }
 }
 
+/* === Modal === */
+[x-cloak] { display: none !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.modal h3 { margin: 0 0 8px; font-size: 16px; }
+.modal p  { margin: 0 0 16px; }
+.modal code { background: var(--btn); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
 /* === Login Seite === */
 .login-container {
   max-width: 360px;

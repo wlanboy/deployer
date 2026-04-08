@@ -24,6 +24,22 @@
     </div>
   </header>
 
+  <!-- Become-Passwort Modal -->
+  <div class="modal-overlay" x-show="showBecomePrompt" x-cloak>
+    <div class="modal">
+      <h3>Sudo-Passwort erforderlich</h3>
+      <p class="muted">Mindestens ein Playbook benötigt erhöhte Rechte (<code>become: true</code>).</p>
+      <div class="field">
+        <label>Sudo-Passwort</label>
+        <input type="password" x-model="becomePassword" @keyup.enter="confirmRun()" autofocus placeholder="Passwort eingeben">
+      </div>
+      <div class="actions">
+        <button class="btn btn-success" @click="confirmRun()" :disabled="!becomePassword">Starten</button>
+        <button class="btn btn-secondary" @click="showBecomePrompt = false; becomePassword = ''">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
   <div class="content">
   <template x-if="tab==='create'">
     <div class="panel">
@@ -116,7 +132,7 @@
                 <input type="text" x-model="hostLimit" placeholder="web01,db02">
               </div>
 
-              <button class="btn btn-success" @click="addStepToDeployment(selectedDeploymentId, repoId)"
+              <button class="btn btn-success" @click="addStepToDeployment(repoId)"
                 :disabled="!selectedDeploymentId || selectedPlaybooks.length===0 || !selectedInventory">
                 Step hinzufügen
               </button>
@@ -233,7 +249,7 @@
                         <td x-text="item.hostLimit || '—'"></td>
                         <td class="step-actions">
                           <button class="btn btn-warning btn-sm" @click="editStep(d.id, item, d.repoId)">Bearbeiten</button>
-                          <button class="btn btn-danger btn-sm" @click="deleteStep(d.id, item.id, d.repoId)">Löschen</button>
+                          <button class="btn btn-danger btn-sm" @click="deleteStep(d.id, item.id)">Löschen</button>
                         </td>
                       </tr>
                     </template>

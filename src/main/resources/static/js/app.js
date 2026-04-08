@@ -25,6 +25,11 @@ function workflow() {
     // Outputs für Runs
     outputs: [],
 
+    // Become-Passwort Dialog
+    showBecomePrompt: false,
+    becomePassword: '',
+    pendingRunId: null,
+
     init() {
       this.loadRepos();
       this.loadDeployments();
@@ -77,7 +82,7 @@ function workflow() {
       }
     },
 
-    addStepToDeployment(selectedDeploymentId, repoId) {
+    addStepToDeployment(repoId) {
       this.repoId = repoId;
       if (!this.selectedDeploymentId) return;
       const promises = this.selectedPlaybooks.map(p =>
@@ -136,32 +141,27 @@ function workflow() {
     },
 
     // Deployment anlegen
-    createDeployment() {
+    async createDeployment() {
       if (!this.canCreateDeployment()) return;
-      fetch(`/api/${this.repoId}/deployment`, {
+      const r = await fetch(`/api/${this.repoId}/deployment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
         body: `name=${encodeURIComponent(this.deploymentName)}`
-      })
-        .then(r => r.json())
-        .then(d => {
-          const promises = this.selectedPlaybooks.map(p =>
-            fetch(`/api/${this.repoId}/deployment/${d.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
-              body: `playbook=${encodeURIComponent(p)}`
-                + `&inventory=${encodeURIComponent(this.selectedInventory)}`
-                + `&tags=${encodeURIComponent(this.tags)}`
-                + `&skipTags=${encodeURIComponent(this.skipTags)}`
-                + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
-            })
-          );
-          return Promise.all(promises).then(() => d);
+      });
+      const d = await r.json();
+      await Promise.all(this.selectedPlaybooks.map(p =>
+        fetch(`/api/${this.repoId}/deployment/${d.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': this.getCsrfToken() },
+          body: `playbook=${encodeURIComponent(p)}`
+            + `&inventory=${encodeURIComponent(this.selectedInventory)}`
+            + `&tags=${encodeURIComponent(this.tags)}`
+            + `&skipTags=${encodeURIComponent(this.skipTags)}`
+            + `&hostLimit=${encodeURIComponent(this.hostLimit)}`
         })
-        .then(() => {
-          this.loadDeployments();
-          this.tab = 'execute'; // nach dem Anlegen direkt zur Ausführung wechseln
-        });
+      ));
+      this.loadDeployments();
+      this.tab = 'execute';
     },
 
     addStep(deploymentId, repoId) {
@@ -186,18 +186,44 @@ function workflow() {
     },
 
     runDeployment(id) {
+      fetch(`/api/${this.repoId}/deployment/${id}/requires-become`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.requiresBecome) {
+            this.pendingRunId = id;
+            this.showBecomePrompt = true;
+          } else {
+            this.startRun(id, null);
+          }
+        })
+        .catch(() => this.startRun(id, null));
+    },
+
+    confirmRun() {
+      this.showBecomePrompt = false;
+      this.startRun(this.pendingRunId, this.becomePassword);
+      this.becomePassword = '';
+      this.pendingRunId = null;
+    },
+
+    startRun(id, becomePassword) {
       const outputObj = { id: Date.now(), deploymentId: id, text: '' };
       this.outputs.push(outputObj);
 
-      fetch(`/api/${this.repoId}/rundeployment/${id}`).then(res => {
+      const body = new URLSearchParams();
+      if (becomePassword) body.append('becomePassword', becomePassword);
+
+      fetch(`/api/${this.repoId}/rundeployment/${id}`, {
+        method: 'POST',
+        headers: { 'X-XSRF-TOKEN': this.getCsrfToken() },
+        body
+      }).then(res => {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
 
         const pump = () => reader.read().then(({ done, value }) => {
           if (done) return;
-          // Text anhängen
           outputObj.text += decoder.decode(value);
-          // Reaktivität erzwingen: Array neu zuweisen
           this.outputs = this.outputs.map(o => o.id === outputObj.id ? { ...outputObj } : o);
           return pump();
         });
@@ -254,7 +280,7 @@ function workflow() {
         .catch(err => console.error('Fehler beim Löschen des Deployments:', err));
     },
 
-    deleteStep(deploymentId, stepId, repoId) {
+    deleteStep(deploymentId, stepId) {
       if (!confirm("Step wirklich löschen?")) return;
       fetch(`/api/${this.repoId}/deployment/${deploymentId}/step/${stepId}`, {
         method: 'DELETE',
