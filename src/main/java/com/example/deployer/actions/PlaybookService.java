@@ -73,8 +73,11 @@ public class PlaybookService {
         }
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.environment().put("ANSIBLE_HOST_KEY_CHECKING", "False");
         pb.redirectErrorStream(true);
         Process process = pb.start();
+
+        emitter.send("$ " + String.join(" ", cmd) + "\n\n");
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;

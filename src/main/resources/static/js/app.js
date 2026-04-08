@@ -5,6 +5,7 @@ function workflow() {
     theme: 'dark',
     createMode: '',            // 'new', 'step', 'step-edit', 'create' sein
     selectedDeploymentId: '',  // für Step hinzufügen
+    stepId: null,
 
     // Daten
     repos: [],
@@ -76,8 +77,8 @@ function workflow() {
       }
     },
 
-    addStepToDeployment(selectedDeploymentId, reproId) {
-      this.reproId = reproId;
+    addStepToDeployment(selectedDeploymentId, repoId) {
+      this.repoId = repoId;
       if (!this.selectedDeploymentId) return;
       const promises = this.selectedPlaybooks.map(p =>
         fetch(`/api/${this.repoId}/deployment/${this.selectedDeploymentId}`, {
@@ -99,7 +100,8 @@ function workflow() {
     loadRepos() {
       fetch('/repos')
         .then(r => r.json())
-        .then(data => { this.repos = data; });
+        .then(data => { this.repos = data; })
+        .catch(err => console.error('Fehler beim Laden der Repos:', err));
     },
 
     selectRepo(id) {
@@ -129,19 +131,9 @@ function workflow() {
       }
       fetch(`/api/${this.repoId}/deployments`)
         .then(r => r.json())
-        .then(data => { this.deployments = data; });
+        .then(data => { this.deployments = data; })
+        .catch(err => console.error('Fehler beim Laden der Deployments:', err));
     },
-
-    loadPlaybooksAndInventories() {
-      if (!this.repoId) return;
-      fetch(`/api/${this.repoId}/playbooks`)
-        .then(r => r.json())
-        .then(data => { this.playbooks = data; });
-      fetch(`/api/${this.repoId}/inventories`)
-        .then(r => r.json())
-        .then(data => { this.inventories = data; });
-    },
-
 
     // Deployment anlegen
     createDeployment() {
@@ -258,10 +250,12 @@ function workflow() {
     deleteDeployment(id) {
       if (!confirm("Deployment wirklich löschen?")) return;
       fetch(`/api/${this.repoId}/deployment/${id}`, { method: 'DELETE', headers: { 'X-XSRF-TOKEN': this.getCsrfToken() } })
-        .then(() => this.loadDeployments());
+        .then(() => this.loadDeployments())
+        .catch(err => console.error('Fehler beim Löschen des Deployments:', err));
     },
 
     deleteStep(deploymentId, stepId, repoId) {
+      if (!confirm("Step wirklich löschen?")) return;
       fetch(`/api/${this.repoId}/deployment/${deploymentId}/step/${stepId}`, {
         method: 'DELETE',
         headers: { 'X-XSRF-TOKEN': this.getCsrfToken() }
@@ -269,7 +263,7 @@ function workflow() {
         this.loadDeployments();
         this.createMode = '';
         this.tab = 'execute';
-      });
+      }).catch(err => console.error('Fehler beim Löschen des Steps:', err));
     },
 
     copySingleOutput(o) {

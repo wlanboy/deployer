@@ -1,6 +1,7 @@
 package com.example.deployer.frontend;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -244,8 +245,8 @@ public class DeploymentController {
                     }
 
                     playbookService.runPlaybookStreamed(
-                            playbookFile.getAbsolutePath(),
-                            inventoryFile.getAbsolutePath(),
+                            playbookFile.getCanonicalPath(),
+                            inventoryFile.getCanonicalPath(),
                             item.getTags(),
                             item.getSkipTags(),
                             item.getHostLimit(),
