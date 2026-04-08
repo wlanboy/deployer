@@ -129,7 +129,7 @@ body.light input[type="text"], body.light select {
 }
 .btn:hover { background: var(--btnHover); }
 
-.btn-accent { background: var(--accent); color:#021318; }
+.btn-accent { background: var(--accent); color:#fff; }
 .btn-accent:hover { filter: brightness(1.1); }
 
 .btn-success { background: var(--success); color:#fff; }
@@ -140,6 +140,14 @@ body.light input[type="text"], body.light select {
 
 .btn-warning { background: var(--warning); color:#fff; }
 .btn-warning:hover { filter: brightness(1.1); }
+
+.btn-secondary { background: var(--muted); color:#fff; }
+.btn-secondary:hover { filter: brightness(1.1); }
+
+/* === Haupt-Content === */
+.content {
+  padding: 16px;
+}
 
 /* === Tabellen für Deployments === */
 .table {
@@ -159,6 +167,61 @@ body.light .table th {
   background: #eee;
   color: var(--text);
 }
+body.light .table th,
+body.light .table td {
+  border-color: #ddd;
+}
+
+/* === Deployment Cards === */
+.deployment-list { display: grid; gap: 12px; }
+
+.deployment-card {
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+body.light .deployment-card { border-color: #ddd; }
+
+.deployment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--btn);
+  border-bottom: 1px solid #2a2a2a;
+}
+body.light .deployment-header { border-color: #ddd; }
+
+.deployment-name { font-weight: 600; font-size: 15px; }
+.deployment-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* === Steps Tabelle === */
+.steps-table-wrap { overflow-x: auto; }
+.steps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.steps-table th,
+.steps-table td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid #2a2a2a;
+}
+body.light .steps-table th,
+body.light .steps-table td { border-color: #eee; }
+.steps-table th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.steps-table tbody tr:last-child td { border-bottom: none; }
+.steps-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+body.light .steps-table tbody tr:hover { background: rgba(0,0,0,0.03); }
+
+.step-nr { color: var(--muted); width: 28px; text-align: center; }
+.step-actions { display: flex; gap: 4px; white-space: nowrap; }
+
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+.no-steps { padding: 12px 14px; color: var(--muted); font-size: 13px; }
 
 /* === Output Bereich === */
 .output-block {
@@ -243,7 +306,7 @@ body.light .login-container input[type="password"] {
   border-radius: 6px;
   border: none;
   background: var(--accent);
-  color: #00c90a;
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s ease;
