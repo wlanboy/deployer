@@ -2,6 +2,7 @@ package com.example.deployer.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -25,12 +26,29 @@ public class TokenSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf
+        http
+            // #4 Defensive security headers
+            .headers(headers -> headers
+                // Prevent clickjacking
+                .frameOptions(frame -> frame.deny())
+                // Prevent MIME-sniffing
+                .contentTypeOptions(Customizer.withDefaults())
+                // Enforce HTTPS on future requests
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31536000)
+                )
+            )
+            // CSRF cookie must stay readable by JS (Alpine.js reads XSRF-TOKEN to set the header)
+            .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
             )
             .authorizeHttpRequests(auth -> auth
+                // Public: login UI and static assets
                 .requestMatchers("/login", "/css/**", "/js/**").permitAll()
+                // Actuator endpoints and API docs are public
+                .requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -45,7 +63,7 @@ public class TokenSecurityConfig {
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
-                .addLogoutHandler(tokenCleanupLogoutHandler) 
+                .addLogoutHandler(tokenCleanupLogoutHandler)
                 .permitAll()
             )
             .authenticationProvider(tokenAuthenticationProvider);
