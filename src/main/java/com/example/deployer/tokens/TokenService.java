@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 
 @Service
 public class TokenService {
@@ -38,6 +39,7 @@ public class TokenService {
         Files.write(tokenFile, tokens, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 
+    @Transactional
     public void cleanupExpiredTokens() {
         LocalDate today = LocalDate.now();
 
