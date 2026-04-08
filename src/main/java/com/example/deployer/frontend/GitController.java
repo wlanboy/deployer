@@ -21,6 +21,10 @@ import com.example.deployer.configuration.GitConfig;
 @RequestMapping("/git")
 public class GitController {
 
+    // #3 Only allow valid git branch name characters; reject option-injection via leading dash
+    private static final java.util.regex.Pattern VALID_BRANCH =
+            java.util.regex.Pattern.compile("^[\\w][\\w.\\-/]*$");
+
     private final GitConfig gitConfig;
 
     public GitController(GitConfig gitConfig) {
@@ -41,6 +45,10 @@ public class GitController {
 
     @PostMapping("/{repoId}/checkout/{branch}")
     public Map<String, String> gitCheckout(@PathVariable String repoId, @PathVariable String branch) {
+        // #3 Validate branch name before passing it to git
+        if (!VALID_BRANCH.matcher(branch).matches() || branch.contains("..")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ungültiger Branch-Name");
+        }
         GitConfig.Repo repo = gitConfig.findById(repoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Repo not found"));
         File gitDir = new File(repo.getPath(), ".git");
@@ -74,11 +82,18 @@ public class GitController {
             pb.directory(new File(repoPath));
             pb.redirectErrorStream(true);
             Process process = pb.start();
+            String output;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                return reader.lines().collect(Collectors.joining("\n"));
+                output = reader.lines().collect(Collectors.joining("\n"));
             }
+            // #7 Wait for process to finish so it is not left as a zombie
+            process.waitFor();
+            return output;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Fehler beim Ausführen von Git", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Git-Befehl wurde unterbrochen");
         }
     }
 }
