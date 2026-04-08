@@ -13,12 +13,39 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.yaml.snakeyaml.Yaml;
 
 @Service
 public class PlaybookService {
+
+    private static final Logger log = LoggerFactory.getLogger(PlaybookService.class);
+
+    // Tags: comma-separated Ansible tag names (letters, digits, hyphens, underscores)
+    private static final Pattern SAFE_TAG_PATTERN = Pattern.compile("^[\\w,\\- ]*$");
+    // Host limit: Ansible inventory patterns (alphanumeric, hyphens, dots, colons,
+    // wildcards, negation, intersection, commas – but never starts with a dash)
+    private static final Pattern SAFE_HOST_PATTERN = Pattern.compile("^[\\w,.:\\-*!&@ ]*$");
+
+    private void validateTags(String value, String name) {
+        if (value != null && !value.isBlank() && !SAFE_TAG_PATTERN.matcher(value).matches()) {
+            throw new IllegalArgumentException("Ungültiger Wert für '" + name + "': nur Buchstaben, Ziffern, Kommas und Bindestriche erlaubt");
+        }
+    }
+
+    private void validateHostLimit(String value) {
+        if (value != null && !value.isBlank()) {
+            if (value.startsWith("-")) {
+                throw new IllegalArgumentException("'hostLimit' darf nicht mit einem Bindestrich beginnen");
+            }
+            if (!SAFE_HOST_PATTERN.matcher(value).matches()) {
+                throw new IllegalArgumentException("Ungültiger Wert für 'hostLimit': unerlaubte Zeichen");
+            }
+        }
+    }
 
     public boolean requiresBecome(String playbookPath) {
         try (FileReader reader = new FileReader(playbookPath)) {
@@ -36,6 +63,7 @@ public class PlaybookService {
             }
             return false;
         } catch (Exception e) {
+            log.warn("Fehler beim Lesen von Playbook '{}': {}", playbookPath, e.getMessage());
             return false;
         }
     }
@@ -77,6 +105,11 @@ public class PlaybookService {
             String hostLimit,
             String becomePassword,
             ResponseBodyEmitter emitter) throws IOException {
+
+        // #1 Validate user-controlled parameters before passing to ProcessBuilder
+        validateTags(tags, "tags");
+        validateTags(skipTags, "skipTags");
+        validateHostLimit(hostLimit);
 
         List<String> cmd = new ArrayList<>();
         cmd.add("ansible-playbook");
@@ -125,9 +158,21 @@ public class PlaybookService {
         } catch (Exception e) {
             emitter.send("❌ Fehler: " + e.getMessage());
         } finally {
+            // #8 Always delete become password file immediately after reading output
             if (becomeFile != null) {
                 Files.deleteIfExists(becomeFile);
             }
+        }
+
+        // #8 Wait for process and report non-zero exit codes
+        try {
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                emitter.send("\n❌ ansible-playbook beendet mit Exit-Code: " + exitCode + "\n");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            emitter.send("\n❌ Ausführung unterbrochen\n");
         }
     }
 }
