@@ -31,8 +31,13 @@ public class PlaybookService {
     private static final Pattern SAFE_HOST_PATTERN = Pattern.compile("^[\\w,.:\\-*!&@ ]*$");
 
     private void validateTags(String value, String name) {
-        if (value != null && !value.isBlank() && !SAFE_TAG_PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException("Ungültiger Wert für '" + name + "': nur Buchstaben, Ziffern, Kommas und Bindestriche erlaubt");
+        if (value != null && !value.isBlank()) {
+            if (value.stripLeading().startsWith("-")) {
+                throw new IllegalArgumentException("Ungültiger Wert für '" + name + "': darf nicht mit einem Bindestrich beginnen");
+            }
+            if (!SAFE_TAG_PATTERN.matcher(value).matches()) {
+                throw new IllegalArgumentException("Ungültiger Wert für '" + name + "': nur Buchstaben, Ziffern, Kommas und Bindestriche erlaubt");
+            }
         }
     }
 
@@ -90,7 +95,7 @@ public class PlaybookService {
     public List<String> extractHosts(String output) {
         List<String> hosts = new ArrayList<>();
         for (String line : output.split("\\R")) {
-            if (line.matches("^\\s*\\S+\\s+:.*ok=")) {
+            if (line.matches("^\\s*\\S+\\s+:.*ok=.*")) {
                 String host = line.split(":")[0].trim();
                 hosts.add(host);
             }
